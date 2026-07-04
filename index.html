@@ -373,10 +373,10 @@ function draw(){
     ctx.fillText('点击屏幕重生',W/2,H/2+55);
   }
 
+function gameLoop(){
+  try{update();draw()}catch(e){}
   requestAnimationFrame(gameLoop);
 }
-
-function gameLoop(){update();draw()}
 spawnWave();gameLoop();
 </script>
 </body>
