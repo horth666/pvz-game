@@ -46,7 +46,7 @@ const map=[
 function gm(x,y){const mx=x|0,my=y|0;return(mx<0||mx>=MW||my<0||my>=MH)?1:map[my*MW+mx]}
 
 // ===== 玩家 =====
-let px=3.5,py=3.5,pa=0,hp=100,kills=0,score=0,round=1,dead=false,started=false;
+let px=2.5,py=2.5,pa=0,hp=100,kills=0,score=0,round=1,dead=false,started=false;
 let keys={},mx=W/2,my=H/2;
 
 // ===== 武器 =====
@@ -63,7 +63,7 @@ let enemies=[];
 // ===== 输入 =====
 window.onkeydown=e=>{keys[e.key]=true;if(e.key==='r'&&!rld&&ammo<wp.mag)rld=wp.rld;if(e.key==='1'){cur='pistol';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}if(e.key==='2'){cur='m4';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}if(e.key==='3'){cur='awm';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}};
 window.onkeyup=e=>keys[e.key]=false;
-c.onclick=()=>{if(!started){started=true;msg.style.display='none';c.requestPointerLock().catch(()=>{})}else if(dead){px=3.5;py=3.5;pa=0;hp=100;kills=0;score=0;round=1;dead=false;enemies=[];ammo=wp.mag;rld=0;spWave()}else if(started){shoot()}};
+c.onclick=()=>{if(!started){started=true;msg.style.display='none';c.requestPointerLock().catch(()=>{})}else if(dead){px=2.5;py=2.5;pa=0;hp=100;kills=0;score=0;round=1;dead=false;enemies=[];ammo=wp.mag;rld=0;spWave()}else if(started){shoot()}};
 c.oncontextmenu=e=>e.preventDefault();
 document.onmousemove=e=>{mx=e.clientX;my=e.clientY;if(document.pointerLockElement===c)pa+=e.movementX*0.003};
 document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&started&&!dead)msg.style.display='block';msg.textContent=document.pointerLockElement?'':'已解锁，点击重新锁定'});
