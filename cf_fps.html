@@ -6,48 +6,46 @@
 <title>穿越火线 CF</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#111;overflow:hidden;height:100vh;font-family:'Segoe UI',sans-serif}
+body{background:#000;overflow:hidden;height:100vh;font-family:monospace}
 canvas{display:block}
-#msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:1.3rem;z-index:10;pointer-events:none;background:rgba(0,0,0,.7);padding:12px 24px;border-radius:8px}
+#msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:1.2rem;z-index:10;pointer-events:none;background:rgba(0,0,0,.7);padding:10px 20px;border-radius:8px}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="msg">点击屏幕开始游戏</div>
 <script>
-// ===== Canvas =====
 const c=document.getElementById('c'),ctx=c.getContext('2d'),msg=document.getElementById('msg');
 let W=c.width=innerWidth,H=c.height=innerHeight;
 window.onresize=()=>{W=c.width=innerWidth;H=c.height=innerHeight};
 
-// ===== 地图 20x20 =====
-const MW=20,MH=20;
+// ===== 地图 =====
 const map=[
 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
 1,0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,
-1,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,2,0,0,1,
+1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,
 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-1,0,2,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,1,
-1,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0,1,0,0,1,
+1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,1,
+1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,
 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,1,
-1,0,0,0,0,0,2,0,0,0,0,1,0,0,0,0,0,0,0,1,
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
 1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,
-1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,
-1,0,0,1,1,0,0,0,1,1,0,0,0,0,0,1,1,0,0,1,
+1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,
+1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
+1,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,
 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-1,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,1,
-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,
-1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-1,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,1,
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
-function gm(x,y){const mx=x|0,my=y|0;return(mx<0||mx>=MW||my<0||my>=MH)?1:map[my*MW+mx]}
+function gm(x,y){const mx=x|0,my=y|0;return(mx<0||mx>=20||my<0||my>=20)?1:map[my*20+mx]}
 
 // ===== 玩家 =====
-let px=2.5,py=2.5,pa=0,hp=100,kills=0,score=0,round=1,dead=false,started=false;
-let keys={},mx=W/2,my=H/2;
+let px=5.5,py=5.5,pa=0,hp=100,kills=0,score=0,round=1,dead=false,started=false;
+let keys={},mLocked=false;
 
 // ===== 武器 =====
 const wpns={
@@ -60,83 +58,84 @@ let cur='m4',wp=wpns[cur],ammo=wp.mag,cd=0,rld=0;
 // ===== 敌人 =====
 let enemies=[];
 
-// ===== 输入 =====
-window.onkeydown=e=>{keys[e.key]=true;if(e.key==='r'&&!rld&&ammo<wp.mag)rld=wp.rld;if(e.key==='1'){cur='pistol';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}if(e.key==='2'){cur='m4';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}if(e.key==='3'){cur='awm';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}};
-window.onkeyup=e=>keys[e.key]=false;
-c.onclick=()=>{if(!started){started=true;msg.style.display='none';c.requestPointerLock().catch(()=>{})}else if(dead){px=2.5;py=2.5;pa=0;hp=100;kills=0;score=0;round=1;dead=false;enemies=[];ammo=wp.mag;rld=0;spWave()}else if(started){shoot()}};
-c.oncontextmenu=e=>e.preventDefault();
-document.onmousemove=e=>{mx=e.clientX;my=e.clientY;if(document.pointerLockElement===c)pa+=e.movementX*0.003};
-document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&started&&!dead)msg.style.display='block';msg.textContent=document.pointerLockElement?'':'已解锁，点击重新锁定'});
+// ===== DDA 光线投射 (快速) =====
+function castDDA(angle){
+  const cos=Math.cos(angle),sin=Math.sin(angle);
+  let x=px,y=py;
+  const dx=Math.abs(1/cos),dy=Math.abs(1/sin);
+  let stepX,stepY,sideDistX,sideDistY;
+  let mapX=x|0,mapY=y|0;
+  if(cos<0){stepX=-1;sideDistX=(x-mapX)*dx}else{stepX=1;sideDistX=(mapX+1-x)*dx}
+  if(sin<0){stepY=-1;sideDistY=(y-mapY)*dy}else{stepY=1;sideDistY=(mapY+1-y)*dy}
+  let side,hit=0;
+  for(let i=0;i<64;i++){
+    if(sideDistX<sideDistY){sideDistX+=dx;mapX+=stepX;side=0}else{sideDistY+=dy;mapY+=stepY;side=1}
+    if(gm(mapX,mapY)>0){hit=gm(mapX,mapY);break}
+  }
+  const dist=side===0?(mapX-px+(1-stepX)/2)/cos:(mapY-py+(1-stepY)/2)/sin;
+  return{dist,hit,side};
+}
+
+// ===== 生成敌人 =====
+function spEnemy(){
+  let x,y;const s=Math.random()*4|0;
+  if(s===0){x=2+Math.random()*16;y=0.5}
+  else if(s===1){x=2+Math.random()*16;y=19.5}
+  else if(s===2){x=0.5;y=2+Math.random()*16}
+  else{x=19.5;y=2+Math.random()*16}
+  if(gm(x,y)>0)return;
+  enemies.push({x,y,hp:1+Math.floor(round/2),spd:0.02+round*0.004,alive:true})
+}
+function spWave(){const n=2+round;for(let i=0;i<n;i++)setTimeout(spEnemy,i*200);for(let i=0;i<2;i++)spEnemy()}
 
 // ===== 射击 =====
 function shoot(){
-  if(!started||dead||rld||cd>0)return;
+  if(dead||rld||cd>0)return;
   if(ammo<=0){rld=wp.rld;return}
   ammo--;cd=wp.cd;
-  const step=0.15;
-  for(let d=0;d<800;d+=step){
+  for(let d=0;d<400;d+=0.3){
     const hx=px+Math.cos(pa)*d,hy=py+Math.sin(pa)*d;
     if(gm(hx,hy)>0)break;
     for(let e of enemies){
-      if(e.hp>0&&Math.hypot(hx-e.x,hy-e.y)<0.35){
-        e.hp-=wp.dmg;
-        if(e.hp<=0){e.alive=false;kills++;score+=100*round}
-        return;
+      if(e.alive&&Math.hypot(hx-e.x,hy-e.y)<0.4){
+        e.hp-=wp.dmg;if(e.hp<=0){e.alive=false;kills++;score+=100*round}return;
       }
     }
   }
 }
 
-// ===== 敌人生成 =====
-function spEnemy(){
-  const s=Math.random()*4|0;let x,y;
-  if(s===0){x=2+Math.random()*16;y=0.5}
-  else if(s===1){x=2+Math.random()*16;y=MH-0.5}
-  else if(s===2){x=0.5;y=2+Math.random()*16}
-  else{x=MW-0.5;y=2+Math.random()*16}
-  if(gm(x,y)>0)return;
-  enemies.push({x,y,hp:1+Math.floor(round/2),spd:0.015+round*0.003,alive:true})
-}
-function spWave(){const n=2+round*2;for(let i=0;i<n;i++)setTimeout(spEnemy,i*300);if(round===1)for(let i=0;i<3;i++)spEnemy()}
-
 // ===== 更新 =====
 function update(){
   if(!started||dead)return;
-  if(cd>0)cd--;
-  if(rld>0){rld--;if(rld===0)ammo=wp.mag}
+  if(cd>0)cd--;if(rld>0){rld--;if(rld===0)ammo=wp.mag}
 
   // 移动
-  const spd=0.08,m=0.22;
+  const spd=0.07,m=0.25;
   let nx=px,ny=py;
   if(keys['w']||keys['ArrowUp']){nx+=Math.cos(pa)*spd;ny+=Math.sin(pa)*spd}
   if(keys['s']||keys['ArrowDown']){nx-=Math.cos(pa)*spd;ny-=Math.sin(pa)*spd}
   if(keys['a']||keys['ArrowLeft']){nx-=Math.sin(pa)*spd;ny+=Math.cos(pa)*spd}
   if(keys['d']||keys['ArrowRight']){nx+=Math.sin(pa)*spd;ny-=Math.cos(pa)*spd}
-  if(gm(nx-m,py-m)===0&&gm(nx+m,py-m)===0&&gm(nx-m,py+m)===0&&gm(nx+m,py+m)===0)px=nx;
+  if(gm(nx-m,ny-m)===0&&gm(nx+m,ny-m)===0&&gm(nx-m,ny+m)===0&&gm(nx+m,ny+m)===0)px=nx;
   if(gm(px-m,ny-m)===0&&gm(px+m,ny-m)===0&&gm(px-m,ny+m)===0&&gm(px+m,ny+m)===0)py=ny;
 
-  // 鼠标旋转(回退模式)
-  if(!document.pointerLockElement){
-    if(mx<30)pa-=0.04;if(mx>W-30)pa+=0.04;
+  // 回退旋转
+  if(!mLocked){
+    const mx=keys._mx||W/2;
+    if(mx<40)pa-=0.04;if(mx>W-40)pa+=0.04;
   }
 
-  // 敌人
+  // 敌人AI
   enemies.forEach(e=>{
     if(!e.alive)return;
     const dx=px-e.x,dy=py-e.y,dd=Math.hypot(dx,dy);
     if(dd<0.35){hp-=15;e.alive=false}
     if(dd<8&&dd>0.1){e.x+=dx/dd*e.spd;e.y+=dy/dd*e.spd;if(gm(e.x,e.y)>0){e.x-=dx/dd*e.spd;e.y-=dy/dd*e.spd}}
+    if(dd<1.5&&Math.random()<0.02){hp-=3+round}
   });
   enemies=enemies.filter(e=>e.alive);
-  if(hp<=0){hp=0;dead=true}
+  if(hp<=0){hp=0;dead=true;msg.style.display='block';msg.textContent='阵亡! 点击重生'}
   if(enemies.length===0){round++;score+=200;spWave()}
-}
-
-// ===== 光线投射 =====
-function cast(a){
-  const cs=Math.cos(a),sn=Math.sin(a);
-  for(let d=0;d<1600;d+=0.08){const rx=px+cs*d,ry=py+sn*d;const m=gm(rx,ry);if(m>0)return{d,m}}
-  return{d:1600,m:0}
 }
 
 // ===== 渲染 =====
@@ -145,15 +144,15 @@ function draw(){
   // 天地
   ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,W,H/2);
   ctx.fillStyle='#2a2a1a';ctx.fillRect(0,H/2,W,H/2);
-  for(let i=0;i<9;i++){ctx.strokeStyle='rgba(255,255,255,.02)';ctx.beginPath();ctx.moveTo(0,H/2+H/2*(i/9));ctx.lineTo(W,H/2+H/2*(i/9));ctx.stroke()}
+  for(let i=0;i<8;i++){ctx.strokeStyle='rgba(255,255,255,.015)';ctx.beginPath();ctx.moveTo(0,H/2+H/2*(i/8));ctx.lineTo(W,H/2+H/2*(i/8));ctx.stroke()}
 
-  // 墙壁
-  const fov=Math.PI/3,nR=Math.min(640,W),st=fov/nR,sw=W/nR+1;
+  // DDA 墙壁渲染 (200条射线)
+  const fov=Math.PI/3,nR=200,st=fov/nR,sw=W/nR+1;
   for(let i=0;i<nR;i++){
-    const a=pa-fov/2+i*st,r=cast(a);
-    const cd=r.d*Math.cos(a-pa),wh=Math.min(H,8000/(cd+.1)),wt=(H-wh)/2;
-    const sh=Math.max(.05,1-cd/16);
-    const cl=r.m===1?`rgb(${140*sh|0},${90*sh|0},${60*sh|0})`:r.m===2?`rgb(${100*sh|0},${70*sh|0},${40*sh|0})`:`rgb(${25*sh|0},${25*sh|0},${30*sh|0})`;
+    const a=pa-fov/2+i*st,r=castDDA(a);
+    const cd=r.dist*Math.cos(a-pa),wh=Math.min(H,10000/(cd+.1)),wt=(H-wh)/2;
+    const sh=Math.max(.04,1-cd/16);
+    const cl=r.hit===1?`rgb(${130*sh|0},${85*sh|0},${55*sh|0})`:`rgb(${95*sh|0},${65*sh|0},${35*sh|0})`;
     ctx.fillStyle=cl;ctx.fillRect(i*sw,wt,sw,wh);
   }
 
@@ -162,85 +161,79 @@ function draw(){
     const dx=e.x-px,dy=e.y-py,dist=Math.hypot(dx,dy);
     let ang=Math.atan2(dy,dx)-pa;
     while(ang>Math.PI)ang-=Math.PI*2;while(ang<-Math.PI)ang+=Math.PI*2;
-    return{x:e.x,y:e.y,dist,ang,hp:e.hp}
-  }).filter(e=>Math.abs(e.ang)<fov/1.3&&e.dist>.15)
+    return{...e,dist,ang}
+  }).filter(e=>Math.abs(e.ang)<fov&&e.dist>.2)
     .sort((a,b)=>b.dist-a.dist)
     .forEach(e=>{
-      const px2=W/2+e.ang/fov*W,sz=Math.min(H*.8,5000/(e.dist+.1));
-      const ey=H/2-sz/2,sx=px2-sz/2;
-      // 红色光晕
-      ctx.fillStyle='rgba(200,30,30,.2)';ctx.beginPath();ctx.arc(px2,ey+sz*.4,sz*.35,0,Math.PI*2);ctx.fill();
-      // 身体
-      ctx.fillStyle='#5a2020';ctx.fillRect(sx+sz*.15,ey+sz*.45,sz*.7,sz*.55);
-      // 头
-      ctx.fillStyle='#8b2020';ctx.beginPath();ctx.arc(px2,ey+sz*.3,sz*.25,0,Math.PI*2);ctx.fill();
-      // 白色眼睛
-      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(px2-sz*.08,ey+sz*.24,sz*.06,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(px2+sz*.08,ey+sz*.24,sz*.06,0,Math.PI*2);ctx.fill();
-      // 瞳孔
-      ctx.fillStyle='#000';ctx.beginPath();ctx.arc(px2-sz*.08,ey+sz*.24,sz*.03,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(px2+sz*.08,ey+sz*.24,sz*.03,0,Math.PI*2);ctx.fill();
-      // 血条
-      const maxHp=1+Math.floor(round/2);
-      if(maxHp>1){
-        ctx.fillStyle='#333';ctx.fillRect(px2-sz*.2,ey-sz*.1,sz*.4,4);
-        ctx.fillStyle='#f44';ctx.fillRect(px2-sz*.2,ey-sz*.1,sz*.4*Math.max(0,e.hp/maxHp),4);
-      }
+      const sx=W/2+e.ang/fov*W,sz=Math.min(H*.7,4000/(e.dist+.1));
+      const ey=H/2-sz/2,lx=sx-sz/2;
+      // 红色敌人
+      ctx.fillStyle='#600';ctx.fillRect(lx+sz*.15,ey+sz*.42,sz*.7,sz*.58);
+      ctx.fillStyle='#a00';ctx.beginPath();ctx.arc(sx,ey+sz*.28,sz*.22,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(sx-sz*.08,ey+sz*.22,sz*.05,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(sx+sz*.08,ey+sz*.22,sz*.05,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#000';ctx.beginPath();ctx.arc(sx-sz*.08,ey+sz*.22,sz*.025,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(sx+sz*.08,ey+sz*.22,sz*.025,0,Math.PI*2);ctx.fill();
     });
 
   // 枪模
-  const gy=H*.75,gx=W/2,gw=W*.11,gh=H*.18;
-  ctx.fillStyle=wp.c;ctx.fillRect(gx-gw*.5,gy,gw*1.3,gh*.4);ctx.fillRect(gx-gw*.2,gy-gh*.2,gw*.2,gh*.6);
+  const gy=H*.76,gx=W/2,gw=W*.1,gh=H*.16;
+  ctx.fillStyle=wp.c;ctx.fillRect(gx-gw*.4,gy,gw*1.2,gh*.35);ctx.fillRect(gx-gw*.15,gy-gh*.18,gw*.18,gh*.55);
 
   // 准星
   ctx.strokeStyle='#0f0';ctx.lineWidth=2;
-  const cs=14;
-  ctx.beginPath();ctx.moveTo(W/2-cs,H/2);ctx.lineTo(W/2-4,H/2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2+cs,H/2);ctx.lineTo(W/2+4,H/2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2,H/2-cs);ctx.lineTo(W/2,H/2-4);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2,H/2+cs);ctx.lineTo(W/2,H/2+4);ctx.stroke();
+  const cs=13;
+  [[W/2-cs,H/2,W/2-3,H/2],[W/2+cs,H/2,W/2+3,H/2],[W/2,H/2-cs,W/2,H/2-3],[W/2,H/2+cs,W/2,H/2+3]].forEach(p=>{ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(p[2],p[3]);ctx.stroke()});
   ctx.strokeStyle='#f00';ctx.lineWidth=1;ctx.beginPath();ctx.arc(W/2,H/2,2,0,Math.PI*2);ctx.stroke();
 
   // HUD
-  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(10,10,160,20);
-  ctx.fillStyle='#333';ctx.fillRect(12,12,156,16);
-  const grd=ctx.createLinearGradient(12,0,168,0);grd.addColorStop(0,'#f44');grd.addColorStop(.5,'#ff0');grd.addColorStop(1,'#0f0');
-  ctx.fillStyle=grd;ctx.fillRect(12,12,156*hp/100,16);
-  ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText('HP '+Math.ceil(hp),90,25);
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(8,8,140,18);
+  ctx.fillStyle='#333';ctx.fillRect(10,10,136,14);
+  const grd=ctx.createLinearGradient(10,0,146,0);grd.addColorStop(0,'#f44');grd.addColorStop(.5,'#ff0');grd.addColorStop(1,'#0f0');
+  ctx.fillStyle=grd;ctx.fillRect(10,10,136*hp/100,14);
+  ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillText('HP '+hp,80,22);
 
-  ctx.fillStyle='#ff0';ctx.textAlign='right';ctx.font='bold 13px sans-serif';
-  ctx.fillText(wp.n,W-20,26);
-  ctx.fillStyle=ammo?'#fff':'#f44';ctx.font='16px sans-serif';
-  ctx.fillText(`${ammo}/${wp.mag}`,W-20,45);
+  ctx.fillStyle='#ff0';ctx.textAlign='right';ctx.font='bold 12px monospace';
+  ctx.fillText(wp.n,W-15,22);
+  ctx.fillStyle=ammo?'#fff':'#f44';ctx.font='15px monospace';
+  ctx.fillText(ammo+'/'+wp.mag,W-15,38);
+  if(rld){ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(W/2-60,H-35,120,8);ctx.fillStyle='#ff0';ctx.fillRect(W/2-58,H-33,116*((wp.rld-rld)/wp.rld),4)}
 
-  if(rld){ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(W/2-80,H-40,160,10);ctx.fillStyle='#ff0';ctx.fillRect(W/2-78,H-38,156*((wp.rld-rld)/wp.rld),6)}
-
-  ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(0,H-24,W,24);
-  ctx.fillStyle='#ccc';ctx.font='11px sans-serif';ctx.textAlign='left';
-  ctx.fillText(`[1]沙鹰 [2]M4 [3]AWM | R换弹 | ⚔${kills} ⭐${score} 波次${round}`,10,H-8);
-
-  // 小地图
-  const ms=5,ox=W-108,oy=H-132;
-  ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(ox-2,oy-2,MW*ms+4,MH*ms+4);
-  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){ctx.fillStyle=gm(x+.5,y+.5)?'#666':'#1a1a1a';ctx.fillRect(ox+x*ms,oy+y*ms,ms,ms)}
-  ctx.fillStyle='#0f0';ctx.fillRect(ox+px*ms-1.5,oy+py*ms-1.5,3,3);
-  ctx.strokeStyle='#0f0';ctx.beginPath();ctx.moveTo(ox+px*ms,oy+py*ms);ctx.lineTo(ox+px*ms+Math.cos(pa)*8,oy+py*ms+Math.sin(pa)*8);ctx.stroke();
-  enemies.filter(e=>e.alive).forEach(e=>{ctx.fillStyle='#f44';ctx.fillRect(ox+e.x*ms-1,oy+e.y*ms-1,2,2)});
+  ctx.fillStyle='#aaa';ctx.font='11px monospace';ctx.textAlign='left';
+  ctx.fillText('[1]沙鹰 [2]M4 [3]AWM | R换弹 | '+kills+'杀 | '+score+'分 | 波次'+round,8,H-6);
 
   // 死亡
   if(dead){
     ctx.fillStyle='rgba(100,0,0,.5)';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#f00';ctx.font='bold 50px sans-serif';ctx.textAlign='center';
-    ctx.fillText('阵亡',W/2,H/2-10);
-    ctx.fillStyle='#fff';ctx.font='20px sans-serif';
-    ctx.fillText(`击杀${kills} 得分${score}`,W/2,H/2+30);
-    ctx.fillStyle='#ff0';ctx.fillText('点击屏幕重生',W/2,H/2+58);
+    ctx.fillStyle='#f00';ctx.font='bold 44px monospace';ctx.textAlign='center';
+    ctx.fillText('阵亡',W/2,H/2-5);
+    ctx.fillStyle='#fff';ctx.font='18px monospace';
+    ctx.fillText('击杀'+kills+' 得分'+score,W/2,H/2+28);
+    ctx.fillStyle='#ff0';ctx.fillText('点击屏幕重生',W/2,H/2+52);
   }
 }
 
+// ===== 输入 =====
+window.onkeydown=e=>{keys[e.key]=true;if(e.key==='r'&&!rld&&ammo<wp.mag)rld=wp.rld;if(e.key==='1'){cur='pistol';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}if(e.key==='2'){cur='m4';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}if(e.key==='3'){cur='awm';wp=wpns[cur];ammo=wp.mag;cd=0;rld=0}};
+window.onkeyup=e=>keys[e.key]=false;
+c.onclick=e=>{
+  if(!started){started=true;msg.style.display='none';spWave();c.requestPointerLock().catch(()=>{});return}
+  if(dead){px=5.5;py=5.5;pa=0;hp=100;kills=0;score=0;round=1;dead=false;enemies=[];ammo=wp.mag;rld=0;msg.style.display='none';spWave();return}
+  shoot();
+};
+document.onmousemove=e=>{
+  keys._mx=e.clientX;
+  if(document.pointerLockElement===c)pa+=e.movementX*0.004;
+};
+c.oncontextmenu=e=>e.preventDefault();
+document.addEventListener('pointerlockchange',()=>{
+  mLocked=document.pointerLockElement===c;
+  if(!mLocked&&started&&!dead){msg.style.display='block';msg.textContent='点击重新锁定鼠标'}
+  else if(mLocked)msg.style.display='none';
+});
+
 // ===== 主循环 =====
 (function loop(){update();draw();requestAnimationFrame(loop)})();
-spWave();
 </script>
 </body>
 </html>
