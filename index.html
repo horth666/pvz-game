@@ -77,24 +77,41 @@ let frame=0;
 
 // ===== 输入 =====
 const keys={};
+let lastMX=W/2,lastMY=H/2;
 window.onkeydown=e=>{keys[e.key]=true;if(e.key==='r')startReload();if(e.key==='1')swap('pistol');if(e.key==='2')swap('m4');if(e.key==='3')swap('awm')};
 window.onkeyup=e=>keys[e.key]=false;
 
-c.addEventListener('click',()=>{
-  initAudio();
-  if(!mouseLocked){c.requestPointerLock();return}
+function tryLock(){
+  try{c.requestPointerLock()}catch(e){}
+  setTimeout(()=>{
+    if(!mouseLocked){lock.textContent='无法锁定鼠标，移动鼠标到屏幕边缘旋转视角，点击射击';lock.style.background='rgba(0,0,0,.7)';lock.style.padding='12px 20px';lock.style.borderRadius='8px'}
+  },1000);
+}
+
+c.addEventListener('click',e=>{
+  e.preventDefault();
+  if(!mouseLocked){tryLock();return}
   if(gameOver){restart();return}
   fire();
 });
 c.addEventListener('mousemove',e=>{
-  if(!mouseLocked)return;
-  pa+=e.movementX*0.003;
-  pa=pa%(Math.PI*2);
+  lastMX=e.clientX;lastMY=e.clientY;
+  if(mLocked){pa+=e.movementX*0.003;pa=pa%(Math.PI*2)}
 });
 c.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('pointerlockchange',()=>{
   mouseLocked=document.pointerLockElement===c;
-  lock.style.display=mouseLocked?'none':'block';
+  if(mouseLocked)lock.style.display='none';
+});
+
+// 回退模式：鼠标在屏幕边缘时旋转视角
+document.addEventListener('mousemove',e=>{
+  if(mouseLocked)return;
+  const edge=40;
+  if(e.clientX<edge)pa-=0.04;
+  if(e.clientX>W-edge)pa+=0.04;
+  if(e.clientY<edge){/*向上看*/}
+  if(e.clientY>H-edge){/*向下看*/}
 });
 
 // ===== 游戏逻辑 =====
