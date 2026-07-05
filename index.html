@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;overflow:hidden;height:100vh;font-family:'Segoe UI',sans-serif}
-#video{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.85}
+#video{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 #canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
 #ui{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:16px;pointer-events:none}
 #ui span{background:rgba(0,0,0,.6);color:#fff;padding:8px 18px;border-radius:20px;font-size:.9rem}
@@ -195,8 +195,17 @@ async function init(){
     triggerEffect(gesture,cx,cy);
     applyEffect(gesture,cx,cy,timestamp);
 
-    // 更新+绘制粒子
+    // 更新+绘制
     ctx.clearRect(0,0,W,H);
+
+    // 画手部骨架
+    if(results.landmarks&&results.landmarks.length>0){
+      drawHand(results.landmarks[0]);
+    }
+
+    // 环境粒子（始终有微弱粒子漂浮）
+    if(Math.random()<.3)particles.push(new Particle(Math.random()*W,Math.random()*H,{speed:1,up:1,color:'rgba(255,255,255,.3)',size:1.5,life:80,gravity:-.005}));
+
     particles.forEach(p=>{p.update();p.draw(ctx)});
     particles=particles.filter(p=>p.life>0);
     if(particles.length>300)particles=particles.slice(-250); // 限制粒子数量
@@ -205,6 +214,22 @@ async function init(){
   }
   requestAnimationFrame(loop);
   }catch(e){loading.textContent='初始化失败: '+e.message;loading.style.color='#f44';console.error(e)}
+}
+
+// 手部骨架连线
+const HAND_CONNS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+function drawHand(lms){
+  ctx.lineWidth=3;
+  HAND_CONNS.forEach(([a,b])=>{
+    const x1=W-lms[a].x*W,y1=lms[a].y*H;
+    const x2=W-lms[b].x*W,y2=lms[b].y*H;
+    ctx.strokeStyle='rgba(0,255,200,.7)';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  });
+  // 关键点
+  lms.forEach((p,i)=>{
+    const px2=W-p.x*W,py2=p.y*H;
+    ctx.fillStyle=i===0?'#ff0':'#0ff';ctx.beginPath();ctx.arc(px2,py2,i===0?5:3,0,Math.PI*2);ctx.fill();
+  });
 }
 
 function getGestureEmoji(g){
