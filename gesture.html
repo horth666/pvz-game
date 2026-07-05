@@ -9,24 +9,19 @@
 body{background:#000;overflow:hidden;height:100vh;font-family:'Segoe UI',sans-serif}
 #video{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 #canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
-#ui{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:16px;pointer-events:none}
-#ui span{background:rgba(0,0,0,.6);color:#fff;padding:8px 18px;border-radius:20px;font-size:.9rem}
-#gesture{color:#ffd700!important;font-weight:bold;font-size:1.1rem!important}
-#loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:1.5rem;z-index:20;pointer-events:none}
-#effect-name{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);color:#fff;font-size:3rem;z-index:15;pointer-events:none;transition:transform.3s,opacity.3s;text-shadow:0 0 30px currentColor;white-space:nowrap}
-#effect-name.show{transform:translate(-50%,-50%) scale(1);animation:popIn .6s ease-out forwards}
-@keyframes popIn{0%{transform:translate(-50%,-50%) scale(0);opacity:1}100%{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
+#ui{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:14px;pointer-events:none}
+#ui span{background:rgba(0,0,0,.5);color:#fff;padding:6px 14px;border-radius:16px;font-size:.85rem}
+#gesture{color:#ffd700!important;font-weight:bold}
+#loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:1.3rem;z-index:20;pointer-events:none;background:rgba(0,0,0,.6);padding:10px 20px;border-radius:10px}
 </style>
 </head>
 <body>
 <video id="video" autoplay playsinline></video>
 <canvas id="canvas"></canvas>
 <div id="loading">正在加载手势模型...</div>
-<div id="effect-name"></div>
 <div id="ui">
-  <span id="gesture">🖐️ 等待手势</span>
-  <span id="fps">FPS: --</span>
-  <span>✋张开 🫴捏合 👆食指 ✌️剪刀 ✊握拳 👍拇指</span>
+  <span id="gesture">🖐️ 把手放到摄像头前</span>
+  <span id="fps">FPS --</span>
 </div>
 
 <script type="module">
@@ -37,206 +32,194 @@ const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
 const loading=document.getElementById('loading');
 const gestureEl=document.getElementById('gesture');
-const effectName=document.getElementById('effect-name');
 const fpsEl=document.getElementById('fps');
 let W=canvas.width=innerWidth,H=canvas.height=innerHeight;
 window.onresize=()=>{W=canvas.width=innerWidth;H=canvas.height=innerHeight};
 
 // ===== 粒子系统 =====
 let particles=[];
-class Particle{
-  constructor(x,y,opt={}){
-    this.x=x;this.y=y;this.vx=(Math.random()-.5)*(opt.speed||4);
-    this.vy=(Math.random()-.5)*(opt.speed||4)-(opt.up||0);
-    this.life=opt.life||40+Math.random()*40;
-    this.maxLife=this.life;
-    this.color=opt.color||`hsl(${Math.random()*360},100%,60%)`;
-    this.size=opt.size||2+Math.random()*4;
-    this.gravity=opt.gravity||0;
-    this.friction=opt.friction||.97;
-    this.type=opt.type||'circle';
+class P{
+  constructor(x,y,o={}){
+    this.x=x;this.y=y;
+    this.vx=(Math.random()-.5)*(o.spd||3);this.vy=(Math.random()-.5)*(o.spd||3)-(o.up||0);
+    this.life=o.life||30+Math.random()*50;this.max=this.life;
+    this.hue=o.hue!=null?o.hue:Math.random()*360;
+    this.sat=o.sat||100;this.lit=o.lit||60;
+    this.r=o.r||2+Math.random()*5;
+    this.grv=o.grv||0;this.fric=o.fric||.96;
+    this.type=o.type||'glow';
   }
-  update(){
-    this.x+=this.vx;this.y+=this.vy;
-    this.vx*=this.friction;this.vy*=this.friction;
-    this.vy+=this.gravity;
-    this.life--;
+  up(){
+    this.x+=this.vx;this.y+=this.vy;this.vx*=this.fric;this.vy*=this.fric;this.vy+=this.grv;this.life--;
   }
   draw(ctx){
-    const alpha=this.life/this.maxLife;
-    ctx.globalAlpha=alpha;
-    ctx.fillStyle=this.color;
-    if(this.type==='circle'){ctx.beginPath();ctx.arc(this.x,this.y,this.size*alpha,0,Math.PI*2);ctx.fill()}
-    else if(this.type==='star'){
-      ctx.save();ctx.translate(this.x,this.y);ctx.rotate(Date.now()*.005);
-      for(let i=0;i<5;i++){ctx.rotate(Math.PI*2/5);ctx.fillRect(-this.size,-this.size,this.size*2,this.size*2)}ctx.restore();
-    }else{ctx.fillRect(this.x-1,this.y-1,2,2)}
+    const a=this.life/this.max;
+    if(this.type==='glow'){
+      ctx.globalAlpha=a*.6;ctx.fillStyle=`hsl(${this.hue},${this.sat}%,${this.lit}%)`;
+      ctx.beginPath();ctx.arc(this.x,this.y,this.r*a+1,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=a*.2;ctx.fillStyle=`hsl(${this.hue},${this.sat}%,90%)`;
+      ctx.beginPath();ctx.arc(this.x,this.y,this.r*a*2.5,0,Math.PI*2);ctx.fill();
+    }else if(this.type==='trail'){
+      ctx.globalAlpha=a*.5;ctx.strokeStyle=`hsl(${this.hue},${this.sat}%,${this.lit}%)`;
+      ctx.lineWidth=this.r*a;ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(this.x-this.vx*3,this.y-this.vy*3);ctx.stroke();
+    }else{
+      ctx.globalAlpha=a;ctx.fillStyle=`hsl(${this.hue},${this.sat}%,${this.lit}%)`;
+      ctx.fillRect(this.x-1,this.y-1,2,2);
+    }
     ctx.globalAlpha=1;
   }
 }
+function emit(x,y,n,o={}){for(let i=0;i<n;i++)particles.push(new P(x,y,o))}
 
-function emit(x,y,n,opt={}){
-  for(let i=0;i<n;i++)particles.push(new Particle(x,y,opt));
-}
+// ===== 手部骨架 =====
+const CONNS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const FINGER_TIPS=[4,8,12,16,20]; // 指尖索引
+const tipNames=['拇指','食指','中指','无名指','小指'];
 
-// ===== 手势识别 =====
-function getGesture(lms){
-  if(!lms||lms.length===0)return'none';
-  // 指尖 vs 指根 (y轴, 数值越小越靠上)
-  const tips=[8,12,16,20];const mcp=[5,9,13,17];
-  let extended=0;
-  const extFingers=[];
-  for(let i=0;i<4;i++){
-    if(lms[tips[i]].y<lms[mcp[i]].y-.03)extended++;
-    extFingers.push(lms[tips[i]].y<lms[mcp[i]].y-.03);
-  }
-
-  // 拇指
-  const thumbExtended=lms[4].x<lms[3].x-.02; // 拇指尖在拇指关节左侧
-
-  // 捏合检测: 拇指尖和食指尖距离
-  const pinchDist=Math.hypot(lms[4].x-lms[8].x,lms[4].y-lms[8].y);
-
-  if(extended>=4&&thumbExtended)return'open';      // 五指张开
-  if(extended===0&&!thumbExtended)return'fist';     // 握拳
-  if(extFingers[0]&&!extFingers[1]&&!extFingers[2]&&!extFingers[3]&&!thumbExtended)return'point'; // 食指指
-  if(extFingers[0]&&extFingers[1]&&!extFingers[2]&&!extFingers[3])return'peace'; // 剪刀手
-  if(thumbExtended&&extended===0)return'thumbsup';  // 拇指赞
-  if(pinchDist<.04)return'pinch';                   // 捏合
-
-  return'none';
-}
-
-// ===== 特效 =====
-const gestureNames={open:'✨ 粒子绽放',fist:'💥 暗焰爆裂',point:'🔫 激光射线',peace:'🌈 彩虹星雨',thumbsup:'👍 烟火升空',pinch:'🌀 引力漩涡',none:''};
-let prevG='none',effectTimeout=null;
-
-function triggerEffect(gesture,cx,cy){
-  if(gesture===prevG)return;
-  prevG=gesture;
-  // 弹出特效名
-  if(gesture!=='none'){
-    effectName.textContent=gestureNames[gesture];
-    effectName.className='show';
-    clearTimeout(effectTimeout);
-    effectTimeout=setTimeout(()=>effectName.className='',500);
-  }
-}
-
-function applyEffect(gesture,cx,cy,timestamp){
-  switch(gesture){
-  case'open':
-    for(let i=0;i<3;i++)emit(cx,cy,2,{speed:5,up:3,color:`hsl(${timestamp*0.3%360},100%,60%)`,size:6,life:50,gravity:.05});
-    break;
-  case'fist':
-    emit(cx,cy,3,{speed:6,color:'#f44',size:8,life:25,type:'star'});
-    emit(cx,cy,2,{speed:3,color:'#000',size:15,life:20,type:'circle'});
-    break;
-  case'point':
-    if(Math.random()<.3)emit(cx,cy,1,{speed:15,up:0,color:'#0ff',size:2,life:30,gravity:0,friction:1,type:'line'});
-    break;
-  case'peace':
-    emit(cx,cy,3,{speed:4,up:2,color:`hsl(${Math.random()*360},100%,65%)`,size:5,life:45,gravity:.03,type:'star'});
-    break;
-  case'thumbsup':
-    emit(cx,cy-timestamp%10,4,{speed:7,up:8,color:`hsl(40,100%,${50+Math.random()*50}%)`,size:3,life:35,gravity:.08});
-    break;
-  case'pinch':
-    for(let i=0;i<2;i++){const a=Math.random()*Math.PI*2,r=Math.random()*40;
-      emit(cx+Math.cos(a)*r,cy+Math.sin(a)*r,1,{speed:2,up:0,color:'#f0f',size:4,life:60,gravity:.01,type:'circle'});}
-    break;
-  }
-}
-
-// ===== 初始化 =====
-window.onerror=(msg,src,line)=>{loading.textContent='JS错误: '+msg+' @'+line;loading.style.color='#f44'};
-
-async function init(){
-  try{
-  // 摄像头
-  try{
-    loading.textContent='正在请求摄像头...';
-    const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
-    video.srcObject=stream;
-    await video.play();
-    loading.textContent='摄像头就绪，加载AI模型...';
-  }catch(e){loading.textContent='摄像头无法访问: '+e.message;loading.style.color='#f44';return}
-
-  // MediaPipe
-  const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');
-  const handLandmarker=await HandLandmarker.createFromOptions(vision,{
-    baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task',delegate:'GPU'},
-    runningMode:'VIDEO',numHands:1
-  });
-
-  loading.style.display='none';
-
-  // ===== 主循环 =====
-  let lastTime=0,fpsCount=0,fpsTime=0;
-  async function loop(timestamp){
-    if(timestamp-fpsTime>=1000){fpsEl.textContent='FPS: '+fpsCount;fpsCount=0;fpsTime=timestamp}
-    fpsCount++;
-
-    const results=handLandmarker.detectForVideo(video,timestamp);
-    let gesture='none',cx=W/2,cy=H*0.4;
-
-    if(results.landmarks&&results.landmarks.length>0){
-      const lms=results.landmarks[0];
-      gesture=getGesture(lms);
-      // 转换坐标到canvas
-      const wrist=lms[0];
-      cx=W-wrist.x*W;cy=wrist.y*H; // mirror
-      gestureEl.textContent=getGestureEmoji(gesture)+' '+gestureNames[gesture];
-    }else{
-      gestureEl.textContent='🖐️ 等待手势';
-      prevG='none';
-    }
-
-    triggerEffect(gesture,cx,cy);
-    applyEffect(gesture,cx,cy,timestamp);
-
-    // 更新+绘制
-    ctx.clearRect(0,0,W,H);
-
-    // 画手部骨架
-    if(results.landmarks&&results.landmarks.length>0){
-      drawHand(results.landmarks[0]);
-    }
-
-    // 环境粒子（始终有微弱粒子漂浮）
-    if(Math.random()<.3)particles.push(new Particle(Math.random()*W,Math.random()*H,{speed:1,up:1,color:'rgba(255,255,255,.3)',size:1.5,life:80,gravity:-.005}));
-
-    particles.forEach(p=>{p.update();p.draw(ctx)});
-    particles=particles.filter(p=>p.life>0);
-    if(particles.length>300)particles=particles.slice(-250); // 限制粒子数量
-
-    requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-  }catch(e){loading.textContent='初始化失败: '+e.message;loading.style.color='#f44';console.error(e)}
-}
-
-// 手部骨架连线
-const HAND_CONNS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-function drawHand(lms){
-  ctx.lineWidth=3;
-  HAND_CONNS.forEach(([a,b])=>{
+function drawHand(lms,prevLms){
+  // 骨架线
+  CONNS.forEach(([a,b])=>{
     const x1=W-lms[a].x*W,y1=lms[a].y*H;
     const x2=W-lms[b].x*W,y2=lms[b].y*H;
-    ctx.strokeStyle='rgba(0,255,200,.7)';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    const alpha=.5+.5*Math.sin(Date.now()*.005+a);
+    ctx.strokeStyle=`rgba(0,255,200,${alpha})`;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
   });
   // 关键点
   lms.forEach((p,i)=>{
     const px2=W-p.x*W,py2=p.y*H;
-    ctx.fillStyle=i===0?'#ff0':'#0ff';ctx.beginPath();ctx.arc(px2,py2,i===0?5:3,0,Math.PI*2);ctx.fill();
+    const glow=1+.3*Math.sin(Date.now()*.01+i);
+    ctx.fillStyle=i===0?'#ffd700':'#00ffcc';ctx.beginPath();ctx.arc(px2,py2,(i===0?5:3.5)*glow,0,Math.PI*2);ctx.fill();
+  });
+
+  // 指尖光晕
+  FINGER_TIPS.forEach(t=>{
+    const px2=W-lms[t].x*W,py2=lms[t].y*H;
+    ctx.fillStyle='rgba(255,255,255,.15)';ctx.beginPath();ctx.arc(px2,py2,10,0,Math.PI*2);ctx.fill();
   });
 }
 
-function getGestureEmoji(g){
-  const map={open:'✋',fist:'✊',point:'👆',peace:'✌️',thumbsup:'👍',pinch:'🤏',none:'🖐️'};
-  return map[g]||'🖐️';
+// ===== 指尖特效: 每个指尖持续发射粒子 =====
+function fingerEffects(lms,prevLms,timestamp){
+  FINGER_TIPS.forEach((t,i)=>{
+    const px2=W-lms[t].x*W,py2=lms[t].y*H;
+    const hue=(timestamp*.05+i*72)%360;
+    // 指尖速度 = 发射量
+    let spd=2;
+    if(prevLms){
+      const dx=(lms[t].x-prevLms[t].x)*W,dy=(lms[t].y-prevLms[t].y)*H;
+      spd=Math.min(12,Math.hypot(dx,dy)*60);
+    }
+    const n=Math.floor(spd*.8);
+    if(n>0)emit(px2,py2,n,{spd:spd*1.5,up:spd,hue,lite:70,sat:80,r:2+spd*.3,life:25+spd*3,grv:.03,type:'glow'});
+    // 慢速拖尾
+    if(spd>3)emit(px2,py2,1,{spd:1,up:0,hue,sat:50,lite:90,r:spd*.5,life:15,grv:0,type:'trail'});
+  });
 }
 
+// ===== 手掌整体特效 =====
+function palmEffect(lms,timestamp){
+  // 手掌中心（中指根部+手腕中点）
+  const cx=W-(lms[9].x+lms[0].x)/2*W,cy=(lms[9].y+lms[0].y)/2*H;
+  const hue=timestamp*.08%360;
+  emit(cx,cy,1,{spd:3,up:2,hue,lite:80,r:8,life:50,grv:.01,type:'glow'});
+
+  // 手腕火花
+  const wx=W-lms[0].x*W,wy=lms[0].y*H;
+  emit(wx,wy,1,{spd:5,up:4,hue:hue+30,sat:90,lite:70,r:3,life:35,grv:.05,type:'glow'});
+}
+
+// ===== 手势识别 (轻量, 影响粒子风格) =====
+function getGesture(lms){
+  const tips=[8,12,16,20],mcp=[5,9,13,17];
+  let ext=0;const ef=[];
+  for(let i=0;i<4;i++){const e=lms[tips[i]].y<lms[mcp[i]].y-.03;if(e)ext++;ef.push(e)}
+  const thumbExt=lms[4].x<lms[3].x-.02;
+  const pinch=Math.hypot(lms[4].x-lms[8].x,lms[4].y-lms[8].y);
+
+  if(ext>=4&&thumbExt)return'open';
+  if(ext===0&&!thumbExt)return'fist';
+  if(ef[0]&&!ef[1]&&!ef[2]&&!ef[3])return'point';
+  if(ef[0]&&ef[1]&&!ef[2]&&!ef[3])return'peace';
+  if(thumbExt&&ext===0)return'thumbsup';
+  if(pinch<.04)return'pinch';
+  return'move';
+}
+
+// ===== 手势风格影响发射 =====
+function gestureBurst(gesture,lms,timestamp){
+  const cx=W-lms[9].x*W,cy=lms[9].y*H;
+  switch(gesture){
+  case'open':emit(cx,cy,5,{spd:8,up:5,hue:Math.random()*360,spread:4,r:6,life:60,grv:.04});break;
+  case'fist':for(let i=0;i<8;i++)emit(cx+Math.random()*30-15,cy+Math.random()*30-15,1,{spd:10,hue:0,sat:80,lite:40+Math.random()*30,r:10,life:20,grv:.1});break;
+  case'point':emit(W-lms[8].x*W,lms[8].y*H,3,{spd:18,up:0,hue:180,sat:100,lite:60,r:2,life:20,fric:.99,grv:0,type:'trail'});break;
+  case'peace':emit(cx,cy,4,{spd:6,up:3,hue:(timestamp*.3)%360,sat:100,lite:65,r:5,life:50,grv:.03,type:'glow'});break;
+  case'thumbsup':emit(W-lms[4].x*W,lms[4].y*H,4,{spd:7,up:10,hue:45,sat:100,lite:60,r:4,life:40,grv:.08});break;
+  case'pinch':for(let i=0;i<5;i++){const a=Math.random()*Math.PI*2;emit(cx+Math.cos(a)*30,cy+Math.sin(a)*30,1,{spd:3,hue:280+Math.random()*60,sat:90,lite:60,r:3,life:70,grv:.01,type:'glow'})}break;
+  }
+}
+
+// ===== 初始化 =====
+async function init(){
+  try{
+  loading.textContent='正在请求摄像头...';
+  const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+  video.srcObject=stream;await video.play();
+  loading.textContent='摄像头就绪，加载AI模型...';
+  }catch(e){loading.textContent='摄像头错误: '+e.message;loading.style.color='#f44';return}
+
+  try{
+  const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');
+  const hl=await HandLandmarker.createFromOptions(vision,{
+    baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task',delegate:'GPU'},
+    runningMode:'VIDEO',numHands:1
+  });
+  loading.style.display='none';
+
+  let prevLms=null,prevG='',fpsCnt=0,fpsT=0,bFrame=0;
+
+  function loop(ts){
+    if(ts-fpsT>=1000){fpsEl.textContent='FPS '+fpsCnt;fpsCnt=0;fpsT=ts}
+    fpsCnt++;bFrame++;
+
+    const res=hl.detectForVideo(video,ts);
+    ctx.clearRect(0,0,W,H);
+
+    // 背景微尘
+    if(bFrame%3===0)particles.push(new P(Math.random()*W,Math.random()*H,{spd:.3,up:.5,hue:Math.random()*360,sat:30,lite:80,r:1,life:100,grv:-.003,type:'spark'}));
+
+    if(res.landmarks&&res.landmarks.length>0){
+      const lms=res.landmarks[0];
+      const g=getGesture(lms);
+
+      // 持续指尖粒子
+      fingerEffects(lms,prevLms,ts);
+      // 手掌光晕
+      palmEffect(lms,ts);
+      // 手势爆发
+      if(bFrame%8===0)gestureBurst(g,lms,ts);
+
+      // 画骨架
+      drawHand(lms,prevLms);
+      gestureEl.textContent=['open:✨','fist:💥','point:🔫','peace:🌈','thumbsup:👍','pinch:🌀','move:🫧'][['open','fist','point','peace','thumbsup','pinch','move'].indexOf(g)]+' 颗粒:'+particles.length;
+      prevLms=lms;prevG=g;
+    }else{
+      gestureEl.textContent='🖐️ 把手放到摄像头前';
+      prevLms=null;
+    }
+
+    // 更新绘制粒子
+    for(let i=particles.length-1;i>=0;i--){
+      particles[i].up();
+      if(particles[i].life<=0)particles.splice(i,1);
+      else particles[i].draw(ctx);
+    }
+    if(particles.length>400)particles.splice(0,particles.length-350);
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  }catch(e){loading.textContent='模型加载失败: '+e.message;loading.style.color='#f44'}
+}
 init();
 </script>
 </body>
